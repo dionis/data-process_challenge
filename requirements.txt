@@ -1,0 +1,4 @@
+boto3[crt]
+pandas
+requests
+botocore
