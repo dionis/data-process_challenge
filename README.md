@@ -5,6 +5,7 @@ Process a csv dataset with boto3 library and AWS services interactions
 
 - Upload a CSV file with dummy transaction data to S3 (the file must be
 provided as part of the test).
+
 -Process the file using a Python script:
   - Read the file from S3.
   - Filter transactions by a condition (for example, “amount > 500”).
