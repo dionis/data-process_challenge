@@ -11,11 +11,11 @@ from dotenv import load_dotenv,find_dotenv
 
 load_dotenv('config/.env')
 
-EXTERNAL_URL_CSV = 'https://www.stats.govt.nz/assets/Uploads/Balance-of-payments/Balance-of-payments-and-international-investment-position-June-2024-quarter/Download-data/balance-of-payments-and-international-investment-position-june-2024-quarter.csv'
+#EXTERNAL_URL_CSV = 'https://www.stats.govt.nz/assets/Uploads/Balance-of-payments/Balance-of-payments-and-international-investment-position-June-2024-quarter/Download-data/balance-of-payments-and-international-investment-position-june-2024-quarter.csv'
 
 BASE_FILENAME = 'csv_processing'
 
-AWS_BUCKET_NAME = 'geekscastle-challenge'
+#AWS_BUCKET_NAME = 'geekscastle-challenge'
 
 URL_NOT_DEFINED = 'Url not defined'
 
@@ -27,7 +27,7 @@ FAILED_DOWNLOAD_CSV = 'Failed to download CSV file. Status code.'
 
 FAILED_NOT_EXIST_ADDRESS_TO_SAVE = 'Not exist address to save in local directories'
 
-ARN_SNS_URL_IN_AWS = "arn:aws:sns:us-east-2:694619293848:data_engineer_email_topic"
+#ARN_SNS_URL_IN_AWS = "arn:aws:sns:us-east-2:694619293848:data_engineer_email_topic"
 
 TEMP_FILE_PREFIX   = 'redshift_data_upload' #Temporary file prefix
 REDSHIFT_WORKGROUP = ''
@@ -165,9 +165,9 @@ class RedShiftAws ():
             self.client = boto3.client('redshift-data', region_name=env['REDSHIFT_REGION_CLUSTER'])
 
         except client.exceptions.ActiveSessionsExceededException as e:
-            aws_sns_notification("Exception ", ARN_SNS_URL_IN_AWS)
+            aws_sns_notification("Exception ", env['ARN_SNS_URL_IN_AWS'])
         except Exception as err:
-            aws_sns_notification(f"Exception Unexpected {err=}, {type(err)=}", ARN_SNS_URL_IN_AWS)
+            aws_sns_notification(f"Exception Unexpected {err=}, {type(err)=}", env['ARN_SNS_URL_IN_AWS'])
 
 
     def run_redshift_statement(self, sql_statement, client):
@@ -254,7 +254,7 @@ class RedShiftAws ():
 
          load_data_ddl = f"""
           COPY {env['TABLE_NAME']} 
-          FROM 's3://{AWS_BUCKET_NAME}/{file_name}'
+          FROM 's3://{env['AWS_BUCKET_NAME']}/{file_name}'
           FORMAT AS CSV  
           DELIMITER ','
           IGNOREHEADER as 1
@@ -289,10 +289,10 @@ if __name__ == "__main__":
   s3 = S3Aws()
 
   #Download from url
-  downloaded_filename = s3.download_csv_file(EXTERNAL_URL_CSV, DATASETS, BASE_FILENAME)
+  downloaded_filename = s3.download_csv_file(env['EXTERNAL_URL_CSV'], DATASETS, BASE_FILENAME)
 
   #Upload to S3
-  s3.upload_to_aws_s3(AWS_BUCKET_NAME, downloaded_filename)
+  s3.upload_to_aws_s3(env['AWS_BUCKET_NAME'], downloaded_filename)
 
   file_to_filter_address = 'datasets' + os.sep + s3.create_random_filename(BASE_FILENAME) + '.csv'
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
   #Download from S3
   s3.download_file_from_s3(
-      AWS_BUCKET_NAME,
+      env['AWS_BUCKET_NAME'],
       file_name,
       file_to_filter_address
   )
@@ -309,17 +309,14 @@ if __name__ == "__main__":
 
   print(f"Filter file {file_to_filter_address}")
 
-  s3.upload_to_aws_s3(AWS_BUCKET_NAME, file_to_filter_address)
+  s3.upload_to_aws_s3(env['AWS_BUCKET_NAME'], file_to_filter_address)
 
   #### RedShift actions
   client = None
   try:
-    #client = boto3.client('redshift-data', region_name = env['REDSHIFT_REGION_CLUSTER'])
     client = RedShiftAws()
-  # except client.exceptions.ActiveSessionsExceededException as e:
-  #     aws_sns_notification("Exception ", ARN_SNS_URL_IN_AWS)
   except Exception as err:
-      aws_sns_notification(f"Exception Unexpected {err=}, {type(err)=}", ARN_SNS_URL_IN_AWS)
+      aws_sns_notification(f"Exception Unexpected {err=}, {type(err)=}", env['ARN_SNS_URL_IN_AWS'])
 
   file_name = os.path.basename(file_to_filter_address)
 
@@ -327,7 +324,11 @@ if __name__ == "__main__":
 
   logging.info('Process finished')
 
-  aws_sns_notification("Saved result in Redshift's table ",'Redshift saved result', ARN_SNS_URL_IN_AWS)
+  aws_sns_notification(
+      "Saved result in Redshift's table ",
+      'Redshift saved result',
+      env['ARN_SNS_URL_IN_AWS']
+  )
 
   s3.delete_files_in_directory(DATASETS)
 
